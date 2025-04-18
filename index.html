@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chaos Wheel (SOD2)</title>
   <style>
     html, body {
@@ -11,17 +10,39 @@
       padding: 0;
       background: transparent;
       overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     canvas {
       display: block;
+    }
+    #resultDisplay {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 0.5em 1em;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid red;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 2.2em;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 10px red, 0 0 20px crimson;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      pointer-events: none;
+      z-index: 100;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <canvas id="wheelCanvas" width="800" height="800"></canvas>
+  <div id="resultDisplay"></div>
   <audio id="spinSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <script>
@@ -36,12 +57,14 @@
       { label: 'Scrap Ranged Weapon', weight: 2 }
     ];
 
+    const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
+
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     const center = canvas.width / 2;
     const radius = 350;
-    const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
     const spinSound = document.getElementById('spinSound');
+    const resultDisplay = document.getElementById('resultDisplay');
     const logo = new Image();
     logo.src = 'SOD2logo.png';
 
@@ -56,8 +79,7 @@
       ctx.rotate(angle);
 
       let startAngle = 0;
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
+      for (let entry of entries) {
         const sliceAngle = (entry.weight / totalWeight) * 2 * Math.PI;
 
         ctx.fillStyle = 'black';
@@ -79,11 +101,9 @@
       }
 
       ctx.restore();
-
-      // Draw SOD2 logo centered on top
       ctx.drawImage(logo, center - 200, center - 200, 400, 400);
 
-      // Draw pointer
+      // Pointer
       ctx.beginPath();
       ctx.moveTo(center, center - radius - 20);
       ctx.lineTo(center - 20, center - radius - 60);
@@ -96,7 +116,35 @@
       ctx.stroke();
     }
 
-    function animateSpin(timestamp) {
+    function getResult() {
+      let pointerAngleWheel = ((3 * Math.PI / 2) - angle) % (2 * Math.PI);
+      if (pointerAngleWheel < 0) {
+        pointerAngleWheel += 2 * Math.PI;
+      }
+
+      let currentAngle = 0;
+      for (const entry of entries) {
+        let sliceAngle = (entry.weight / totalWeight) * 2 * Math.PI;
+        if (
+          pointerAngleWheel >= currentAngle &&
+          pointerAngleWheel < currentAngle + sliceAngle
+        ) {
+          return entry.label;
+        }
+        currentAngle += sliceAngle;
+      }
+      return null;
+    }
+
+    function showResult(result) {
+      resultDisplay.textContent = `RESULT: ${result}`;
+      resultDisplay.style.opacity = 1;
+      setTimeout(() => {
+        resultDisplay.style.opacity = 0;
+      }, 4000);
+    }
+
+    function animateSpin() {
       if (!spinning) return;
 
       angle += velocity;
@@ -105,16 +153,20 @@
       velocity *= 0.994;
       if (velocity < 0.002) {
         spinning = false;
+        const result = getResult();
+        showResult(result);
       } else {
         requestAnimationFrame(animateSpin);
       }
     }
 
     logo.onload = () => {
+      angle = Math.random() * 2 * Math.PI;
+      velocity = 0.3 + Math.random() * 0.3;
       drawWheel();
       spinSound.play();
       requestAnimationFrame(animateSpin);
-    }
+    };
   </script>
 </body>
 </html>
