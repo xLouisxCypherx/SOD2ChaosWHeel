@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chaos Wheel (SOD2)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="wheelCanvas" width="800" height="800"></canvas>
+  <audio id="spinSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+  <script>
+    const entries = [
+      { label: 'No Healing', weight: 6 },
+      { label: 'Invert Controls', weight: 5 },
+      { label: 'Melee Only', weight: 8 },
+      { label: 'Scrap Melee Weapon', weight: 2 },
+      { label: 'Take a Hike', weight: 8 },
+      { label: 'Burn Car', weight: 3 },
+      { label: 'Make a Scene', weight: 8 },
+      { label: 'Scrap Ranged Weapon', weight: 2 }
+    ];
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const center = canvas.width / 2;
+    const radius = 350;
+    const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
+    const spinSound = document.getElementById('spinSound');
+    const logo = new Image();
+    logo.src = 'SOD2logo.png';
+
+    let angle = 0;
+    let velocity = 0.2;
+    let spinning = true;
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(angle);
+
+      let startAngle = 0;
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const sliceAngle = (entry.weight / totalWeight) * 2 * Math.PI;
+
+        ctx.fillStyle = 'black';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.save();
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'white';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(entry.label, radius - 10, 10);
+        ctx.restore();
+
+        startAngle += sliceAngle;
+      }
+
+      ctx.restore();
+
+      // Draw SOD2 logo centered on top
+      ctx.drawImage(logo, center - 200, center - 200, 400, 400);
+
+      // Draw pointer
+      ctx.beginPath();
+      ctx.moveTo(center, center - radius - 20);
+      ctx.lineTo(center - 20, center - radius - 60);
+      ctx.lineTo(center + 20, center - radius - 60);
+      ctx.closePath();
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function animateSpin(timestamp) {
+      if (!spinning) return;
+
+      angle += velocity;
+      drawWheel();
+
+      velocity *= 0.994;
+      if (velocity < 0.002) {
+        spinning = false;
+      } else {
+        requestAnimationFrame(animateSpin);
+      }
+    }
+
+    logo.onload = () => {
+      drawWheel();
+      spinSound.play();
+      requestAnimationFrame(animateSpin);
+    }
+  </script>
+</body>
+</html>
